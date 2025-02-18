@@ -3,13 +3,21 @@ import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import AuthForm from '@/components/AuthForm';
 import { useState } from "react";
+import { OTPVerification } from './OTPVerification';
+
 export default function LoginPage() {
   const router = useRouter();
   const [isBlocked, setIsBlocked] = useState(false);
   const [blockTimeRemaining, setBlockTimeRemaining] = useState(0);
-  const handleLogin = async (formData: Record<string, string>) => {
+  const [showOTP, setShowOTP] = useState(false);
+  const [validatedEmail, setValidatedEmail] = useState('');
+  const [validatedPassword, setValidatedPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleInitialValidation = async (formData: Record<string, string>) => {
+    setIsLoading(true);
     try {
-     const rateLimitCheck = await fetch("/api/ratelimit", {
+      const rateLimitCheck = await fetch("/api/ratelimit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
@@ -27,43 +35,97 @@ export default function LoginPage() {
         throw new Error(rateLimitData.error);
       }
 
+      // Validate credentials
+      const res = await fetch("/api/auth/validate-credentials", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password,
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error("Invalid credentials");
+      }
+
+      // Send OTP automatically
+      const otpRes = await fetch('/api/auth/send-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: formData.email }),
+      });
+
+      if (!otpRes.ok) {
+        throw new Error("Failed to send OTP");
+      }
+
+      setValidatedEmail(formData.email);
+      setValidatedPassword(formData.password);
+      setShowOTP(true);
+    } catch (error) {
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleResendOTP = async () => {
+    const res = await fetch('/api/auth/send-otp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: validatedEmail }),
+    });
+
+    if (!res.ok) {
+      const data = await res.json();
+      throw new Error(data.error || 'Failed to send OTP');
+    }
+  };
+
+  const handleOTPVerified = async () => {
+    try {
       const res = await signIn("credentials", {
-        email: formData.email,
-        password: formData.password,
+        email: validatedEmail,
+        password: validatedPassword,
         redirect: false,
       });
 
       if (res?.error) {
-       await fetch("/api/ratelimit", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ 
-            identifier: `login:${formData.email}`,
-            action: 'login',
-            recordFailure: true
-          }),
-        });
-        throw new Error("Invalid Credentials");
-      } else {
-        await fetch("/api/ratelimit", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ 
-            identifier: `login:${formData.email}`,
-            action: 'login',
-            reset: true
-          }),
-        });
-        router.replace("/dashboard");
+        throw new Error("Login failed");
       }
+
+      await fetch("/api/ratelimit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          identifier: `login:${validatedEmail}`,
+          action: 'login',
+          reset: true
+        }),
+      });
+
+      router.replace("/dashboard");
     } catch (error) {
       throw error;
     }
   };
+
+  if (showOTP) {
+    return (
+      <OTPVerification 
+        email={validatedEmail} 
+        onVerified={handleOTPVerified}
+        onResendOTP={handleResendOTP}
+      />
+    );
+  }
+
   return (
     <AuthForm 
       type="login" 
-      onSubmit={handleLogin} 
+      onSubmit={handleInitialValidation} 
+      isLoading={isLoading}
       isBlocked={isBlocked}
       blockTimeRemaining={blockTimeRemaining}
     />

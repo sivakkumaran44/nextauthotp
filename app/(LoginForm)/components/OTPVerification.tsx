@@ -1,4 +1,3 @@
-// components/OTPVerification.tsx
 "use client";
 import { useState, useEffect } from 'react';
 
@@ -12,7 +11,7 @@ export function OTPVerification({ email, onVerified, onResendOTP }: OTPVerificat
   const [otp, setOTP] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [countdown, setCountdown] = useState(30); // 30 seconds countdown for resend
+  const [countdown, setCountdown] = useState(30); 
 
   useEffect(() => {
     const timer = countdown > 0 && setInterval(() => setCountdown(count => count - 1), 1000);
@@ -46,8 +45,8 @@ export function OTPVerification({ email, onVerified, onResendOTP }: OTPVerificat
   const handleResend = async () => {
     try {
       await onResendOTP();
-      setCountdown(30); // Reset countdown
-      setError(''); // Clear any existing errors
+      setCountdown(30); 
+      setError(''); 
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Failed to resend OTP');
     }

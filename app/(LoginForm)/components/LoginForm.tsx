@@ -4,7 +4,6 @@ import { useRouter } from "next/navigation";
 import AuthForm from '@/components/AuthForm';
 import { useState } from "react";
 import { OTPVerification } from './OTPVerification';
-
 export default function LoginPage() {
   const router = useRouter();
   const [isBlocked, setIsBlocked] = useState(false);
@@ -13,7 +12,6 @@ export default function LoginPage() {
   const [validatedEmail, setValidatedEmail] = useState('');
   const [validatedPassword, setValidatedPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-
   const handleInitialValidation = async (formData: Record<string, string>) => {
     setIsLoading(true);
     try {
@@ -26,16 +24,12 @@ export default function LoginPage() {
           recordFailure: false
         }),
       });
-
       const rateLimitData = await rateLimitCheck.json();
-      
       if (!rateLimitCheck.ok) {
         setIsBlocked(true);
         setBlockTimeRemaining(Math.ceil(rateLimitData.remainingTime / 1000));
         throw new Error(rateLimitData.error);
       }
-
-      // Validate credentials
       const res = await fetch("/api/auth/validate-credentials", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -44,12 +38,9 @@ export default function LoginPage() {
           password: formData.password,
         }),
       });
-
       if (!res.ok) {
         throw new Error("Invalid credentials");
       }
-
-      // Send OTP automatically
       const otpRes = await fetch('/api/auth/send-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -59,7 +50,6 @@ export default function LoginPage() {
       if (!otpRes.ok) {
         throw new Error("Failed to send OTP");
       }
-
       setValidatedEmail(formData.email);
       setValidatedPassword(formData.password);
       setShowOTP(true);
@@ -69,20 +59,17 @@ export default function LoginPage() {
       setIsLoading(false);
     }
   };
-
   const handleResendOTP = async () => {
     const res = await fetch('/api/auth/send-otp', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: validatedEmail }),
     });
-
     if (!res.ok) {
       const data = await res.json();
       throw new Error(data.error || 'Failed to send OTP');
     }
   };
-
   const handleOTPVerified = async () => {
     try {
       const res = await signIn("credentials", {
@@ -90,11 +77,9 @@ export default function LoginPage() {
         password: validatedPassword,
         redirect: false,
       });
-
       if (res?.error) {
         throw new Error("Login failed");
       }
-
       await fetch("/api/ratelimit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -104,13 +89,11 @@ export default function LoginPage() {
           reset: true
         }),
       });
-
       router.replace("/dashboard");
     } catch (error) {
       throw error;
     }
   };
-
   if (showOTP) {
     return (
       <OTPVerification 
@@ -120,7 +103,6 @@ export default function LoginPage() {
       />
     );
   }
-
   return (
     <AuthForm 
       type="login" 

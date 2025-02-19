@@ -34,7 +34,7 @@ export default function RegisterPage() {
       }
       const { user } = await resUserExists.json();
       if (user) {
-         await fetch("/api/rateLimit/auth", {
+         await fetch("/api/ratelimit", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ 

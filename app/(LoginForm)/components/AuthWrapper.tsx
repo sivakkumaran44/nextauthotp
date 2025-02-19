@@ -20,7 +20,7 @@ export default function AuthWrapper({
 
   useEffect(() => {
     if (requireAuth && status === "unauthenticated") {
-      router.replace("/login");
+      router.replace("/");
     } else if (!requireAuth && status === "authenticated") {
       router.replace(redirectTo);
     }

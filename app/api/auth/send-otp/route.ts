@@ -1,4 +1,3 @@
-// api/auth/send-otp/route.ts
 import { NextResponse } from "next/server";
 import { Redis } from 'ioredis';
 import nodemailer from 'nodemailer';
@@ -18,14 +17,11 @@ export async function POST(req: Request) {
   try {
     const { email } = await req.json();
     
-    // Generate 6-digit OTP
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+   const otp = Math.floor(100000 + Math.random() * 900000).toString();
     
-    // Store OTP in Redis with 5-minute expiration
     await redis.set(`otp:${email}`, otp, 'EX', 300);
     
-    // Send email
-    await transporter.sendMail({
+   await transporter.sendMail({
       from: process.env.SENDER_EMAIL_ADMIN,
       to: email,
       subject: 'Your Login OTP',

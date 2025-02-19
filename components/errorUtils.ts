@@ -1,7 +1,6 @@
 export class AppError extends Error {
     public statusCode: number;
     public field?: string;
-  
     constructor(message: string, statusCode: number = 500, field?: string) {
       super(message);
       this.statusCode = statusCode;
@@ -9,7 +8,6 @@ export class AppError extends Error {
       this.name = 'AppError';
     }
   }
-  
   export const ERROR_MESSAGES = {
     RATE_LIMIT: 'Too many attempts. Please try again later.',
     INVALID_CREDENTIALS: 'Invalid email or password.',

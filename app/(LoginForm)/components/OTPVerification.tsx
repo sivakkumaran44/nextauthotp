@@ -146,7 +146,6 @@ export function OTPVerification({
         >
       Resend OTP
         </button>
-  
       </div>
     </div>
   );

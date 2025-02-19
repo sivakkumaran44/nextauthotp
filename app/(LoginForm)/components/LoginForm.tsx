@@ -4,6 +4,8 @@ import { useRouter } from "next/navigation";
 import AuthForm from '@/components/AuthForm';
 import { useState } from "react";
 import { OTPVerification } from './OTPVerification';
+import { AppError, ERROR_MESSAGES, formatApiError } from '@/components/errorUtils';
+
 export default function LoginPage() {
   const router = useRouter();
   const [isBlocked, setIsBlocked] = useState(false);
@@ -12,58 +14,114 @@ export default function LoginPage() {
   const [validatedEmail, setValidatedEmail] = useState('');
   const [validatedPassword, setValidatedPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const handleInitialValidation = async (formData: Record<string, string>) => {
     setIsLoading(true);
+    setError(null);
     try {
-     const rateLimitCheck = await fetch("/api/ratelimit", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          identifier: `login:${formData.email}`,
-          action: 'login'
-        }),
-      });
-      const rateLimitData = await rateLimitCheck.json();
-      if (!rateLimitCheck.ok) {
-        setIsBlocked(true);
-        setBlockTimeRemaining(Math.ceil(rateLimitData.remainingTime / 1000));
-        throw new Error(rateLimitData.error);
-      }
-      const res = await fetch("/api/auth/validate-credentials", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: formData.email,
-          password: formData.password,
-        }),
-      });
-      if (!res.ok) {
-        await fetch("/api/ratelimit", {
+      try {
+        const rateLimitCheck = await fetch("/api/ratelimit", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ 
             identifier: `login:${formData.email}`,
-            action: 'login',
-            recordFailure: true
+            action: 'login'
           }),
         });
-        throw new Error("Invalid credentials");
+        
+        if (!rateLimitCheck.ok) {
+          const rateLimitData = await rateLimitCheck.json();
+          setIsBlocked(true);
+          setBlockTimeRemaining(Math.ceil(rateLimitData.remainingTime / 1000));
+          throw new AppError(ERROR_MESSAGES.RATE_LIMIT, 429);
+        }
+      } catch (error) {
+        if (error instanceof AppError) throw error;
+        throw new AppError(ERROR_MESSAGES.RATE_LIMIT, 429);
       }
-      const otpRes = await fetch('/api/auth/send-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: formData.email }),
-      });
-      if (!otpRes.ok) {
-        throw new Error("Failed to send OTP");
+      try {
+        const res = await fetch("/api/auth/validate-credentials", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: formData.email,
+            password: formData.password,
+          }),
+        });
+
+        if (!res.ok) {
+          await fetch("/api/ratelimit", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ 
+              identifier: `login:${formData.email}`,
+              action: 'login',
+              recordFailure: true
+            }),
+          });
+          throw new AppError(ERROR_MESSAGES.INVALID_CREDENTIALS, 401);
+        }
+      } catch (error) {
+        if (error instanceof AppError) throw error;
+        throw new AppError(ERROR_MESSAGES.SERVER_ERROR, 500);
       }
+      try {
+        const otpRes = await fetch('/api/auth/send-otp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: formData.email }),
+        });
+
+        if (!otpRes.ok) {
+          throw new AppError(ERROR_MESSAGES.SERVER_ERROR, 500);
+        }
+      } catch (error) {
+        if (error instanceof AppError) throw error;
+        throw new AppError("Failed to send OTP. Please try again.", 500);
+      }
+
       setValidatedEmail(formData.email);
       setValidatedPassword(formData.password);
       setShowOTP(true);
     } catch (error) {
+      setError(formatApiError(error));
       throw error;
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleOTPVerified = async () => {
+    setError(null);
+    try {
+      const res = await signIn("credentials", {
+        email: validatedEmail,
+        password: validatedPassword,
+        redirect: false,
+      });
+
+      if (res?.error) {
+        throw new AppError(ERROR_MESSAGES.INVALID_CREDENTIALS, 401);
+      }
+
+      try {
+        await fetch("/api/ratelimit", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ 
+            identifier: `login:${validatedEmail}`,
+            action: 'login',
+            reset: true
+          }),
+        });
+      } catch (error) {
+        console.error('Failed to reset rate limit:', error);
+      }
+
+      router.replace("/dashboard");
+    } catch (error) {
+      setError(formatApiError(error));
+      throw error;
     }
   };
   const handleBackToLogin = () => {
@@ -81,30 +139,6 @@ export default function LoginPage() {
     if (!res.ok) {
       const data = await res.json();
       throw new Error(data.error || 'Failed to send OTP');
-    }
-  };
-  const handleOTPVerified = async () => {
-    try {
-      const res = await signIn("credentials", {
-        email: validatedEmail,
-        password: validatedPassword,
-        redirect: false,
-      });
-      if (res?.error) {
-        throw new Error("Login failed");
-      }
-      await fetch("/api/ratelimit", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          identifier: `login:${validatedEmail}`,
-          action: 'login',
-          reset: true
-        }),
-      });
-      router.replace("/dashboard");
-    } catch (error) {
-      throw error;
     }
   };
   if (showOTP) {

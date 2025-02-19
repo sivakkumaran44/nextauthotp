@@ -3,14 +3,12 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { Turnstile } from "@marsidev/react-turnstile";
 import { validateForm, ValidationError } from "./validation";
-
 interface FormField {
   id: string;
   label: string;
   type: string;
   placeholder: string;
 }
-
 interface AuthFormProps {
   type: 'login' | 'register';
   onSubmit: (formData: Record<string, string>) => Promise<void>;
@@ -18,7 +16,6 @@ interface AuthFormProps {
   isBlocked?: boolean;
   blockTimeRemaining?: number;
 }
-
 export default function AuthForm({ 
   type, 
   onSubmit, 

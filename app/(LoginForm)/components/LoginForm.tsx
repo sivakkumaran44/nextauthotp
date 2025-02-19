@@ -11,16 +11,16 @@ export default function LoginPage() {
   const [showOTP, setShowOTP] = useState(false);
   const [validatedEmail, setValidatedEmail] = useState('');
   const [validatedPassword, setValidatedPassword] = useState('');
-  const [isLoading, setIsLoading] = useState(false);  const handleInitialValidation = async (formData: Record<string, string>) => {
+  const [isLoading, setIsLoading] = useState(false);
+  const handleInitialValidation = async (formData: Record<string, string>) => {
     setIsLoading(true);
     try {
-      const rateLimitCheck = await fetch("/api/ratelimit", {
+     const rateLimitCheck = await fetch("/api/ratelimit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
           identifier: `login:${formData.email}`,
-          action: 'login',
-          recordFailure: false
+          action: 'login'
         }),
       });
       const rateLimitData = await rateLimitCheck.json();
@@ -38,6 +38,15 @@ export default function LoginPage() {
         }),
       });
       if (!res.ok) {
+        await fetch("/api/ratelimit", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ 
+            identifier: `login:${formData.email}`,
+            action: 'login',
+            recordFailure: true
+          }),
+        });
         throw new Error("Invalid credentials");
       }
       const otpRes = await fetch('/api/auth/send-otp', {
@@ -45,7 +54,6 @@ export default function LoginPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: formData.email }),
       });
-
       if (!otpRes.ok) {
         throw new Error("Failed to send OTP");
       }

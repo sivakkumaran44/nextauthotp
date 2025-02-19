@@ -1,28 +1,33 @@
 "use client";
 import { useState, useEffect } from 'react';
+import { AppError, ERROR_MESSAGES, formatApiError } from '@/components/errorUtils';
 interface OTPVerificationProps {
   email: string;
   onVerified: () => void;
   onResendOTP: () => Promise<void>;
   onBackToLogin: () => void;  
 }
+
 export function OTPVerification({ 
   email, 
   onVerified, 
   onBackToLogin 
-}: OTPVerificationProps) {const [otp, setOTP] = useState('');
+}: OTPVerificationProps) {
+  const [otp, setOTP] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [countdown, setCountdown] = useState(30);
   const [isBlocked, setIsBlocked] = useState(false);
   const [blockTimeRemaining, setBlockTimeRemaining] = useState(0);
   const [attemptsRemaining, setAttemptsRemaining] = useState(3);
+
   useEffect(() => {
     const timer = countdown > 0 && setInterval(() => setCountdown(count => count - 1), 1000);
     return () => {
       if (timer) clearInterval(timer);
     };
   }, [countdown]);
+
   useEffect(() => {
     let blockTimer: NodeJS.Timeout;
     if (blockTimeRemaining > 0) {
@@ -40,9 +45,12 @@ export function OTPVerification({
       if (blockTimer) clearInterval(blockTimer);
     };
   }, [blockTimeRemaining]);
+
   const handleVerifyOTP = async () => {
     if (isBlocked) return;
     setIsLoading(true);
+    setError('');
+
     try {
       const rateLimitCheck = await fetch("/api/ratelimit", {
         method: "POST",
@@ -52,18 +60,23 @@ export function OTPVerification({
           action: 'otp'  
         }),
       });
+
       const rateLimitData = await rateLimitCheck.json();   
+      
       if (!rateLimitCheck.ok) {
         setIsBlocked(true);
         setBlockTimeRemaining(Math.ceil(rateLimitData.remainingTime / 1000));
-        throw new Error(rateLimitData.error);
+        throw new AppError(ERROR_MESSAGES.RATE_LIMIT, 429);
       }
+
       const res = await fetch('/api/auth/verify-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, otp }),
       });
-     const data = await res.json();
+
+      const data = await res.json();
+      
       if (!res.ok) {
         await fetch("/api/ratelimit", {
           method: "POST",
@@ -74,9 +87,11 @@ export function OTPVerification({
             recordFailure: true
           }),
         });
+        
         setAttemptsRemaining(rateLimitData.attemptsRemaining - 1);
-        throw new Error(data.error || 'Invalid OTP');
+        throw new AppError(ERROR_MESSAGES.INVALID_OTP, 400);
       }
+
       await fetch("/api/ratelimit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -86,13 +101,16 @@ export function OTPVerification({
           reset: true
         }),
       });
+
       onVerified();
     } catch (error) {
-      setError(error instanceof Error ? error.message : 'Failed to verify OTP');
+      const errorMessage = formatApiError(error);
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
   };
+
   const handleResend = async () => {
     onBackToLogin(); 
   };
@@ -144,7 +162,7 @@ export function OTPVerification({
           onClick={handleResend}
           className="text-[#1565C0] text-sm hover:underline"
         >
-      Resend OTP
+          Resend OTP
         </button>
       </div>
     </div>

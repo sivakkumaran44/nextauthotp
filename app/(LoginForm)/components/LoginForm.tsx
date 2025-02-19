@@ -11,8 +11,7 @@ export default function LoginPage() {
   const [showOTP, setShowOTP] = useState(false);
   const [validatedEmail, setValidatedEmail] = useState('');
   const [validatedPassword, setValidatedPassword] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const handleInitialValidation = async (formData: Record<string, string>) => {
+  const [isLoading, setIsLoading] = useState(false);  const handleInitialValidation = async (formData: Record<string, string>) => {
     setIsLoading(true);
     try {
       const rateLimitCheck = await fetch("/api/ratelimit", {
@@ -59,6 +58,12 @@ export default function LoginPage() {
       setIsLoading(false);
     }
   };
+  const handleBackToLogin = () => {
+    setShowOTP(false);
+    setValidatedEmail('');
+    setValidatedPassword('');
+  };
+
   const handleResendOTP = async () => {
     const res = await fetch('/api/auth/send-otp', {
       method: 'POST',
@@ -100,9 +105,11 @@ export default function LoginPage() {
         email={validatedEmail} 
         onVerified={handleOTPVerified}
         onResendOTP={handleResendOTP}
+        onBackToLogin={handleBackToLogin} 
       />
     );
   }
+
   return (
     <AuthForm 
       type="login" 

@@ -4,9 +4,13 @@ interface OTPVerificationProps {
   email: string;
   onVerified: () => void;
   onResendOTP: () => Promise<void>;
+  onBackToLogin: () => void;  
 }
-export function OTPVerification({ email, onVerified, onResendOTP }: OTPVerificationProps) {
-  const [otp, setOTP] = useState('');
+export function OTPVerification({ 
+  email, 
+  onVerified, 
+  onBackToLogin 
+}: OTPVerificationProps) {const [otp, setOTP] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [countdown, setCountdown] = useState(30);
@@ -90,16 +94,9 @@ export function OTPVerification({ email, onVerified, onResendOTP }: OTPVerificat
     }
   };
   const handleResend = async () => {
-    try {
-      await onResendOTP();
-      setCountdown(30);
-      setError('');
-      setAttemptsRemaining(3);
-      setIsBlocked(false);
-    } catch (error) {
-      setError(error instanceof Error ? error.message : 'Failed to resend OTP');
-    }
+    onBackToLogin(); 
   };
+
   return (
     <div className="max-w-md w-full mx-auto rounded-2xl p-8 py-12 space-y-8 shadow-input bg-white border border-[#1a1c24]">
       <div className="font-bold text-neutral-800 flex flex-col space-y-2">
@@ -145,11 +142,11 @@ export function OTPVerification({ email, onVerified, onResendOTP }: OTPVerificat
         </button>
         <button
           onClick={handleResend}
-          disabled={countdown > 0}
-          className="text-[#1565C0] text-sm hover:underline disabled:text-gray-400"
+          className="text-[#1565C0] text-sm hover:underline"
         >
-          {countdown > 0 ? `Resend OTP in ${countdown}s` : "Resend OTP"}
+      Resend OTP
         </button>
+  
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 
   export const AUTH_ROUTES = {
-    LOGIN: '/login',
+    LOGIN: '/',
     REGISTER: '/registerForm',
     DASHBOARD: '/dashboard',
     UNAUTHORIZED: '/unauthorized'

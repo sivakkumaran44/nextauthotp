@@ -14,7 +14,7 @@ export default function LoginPage() {
   const [validatedEmail, setValidatedEmail] = useState('');
   const [validatedPassword, setValidatedPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [, setError] = useState<string | null>(null);
   const handleInitialValidation = async (formData: Record<string, string>) => {
     setIsLoading(true);
     setError(null);

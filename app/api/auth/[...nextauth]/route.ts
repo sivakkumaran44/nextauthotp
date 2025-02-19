@@ -5,7 +5,8 @@ import { connectDB } from "@/lib/mongodb";
 import User from "@/models/User";
 import bcrypt from "bcryptjs";
 
-const authOptions: NextAuthOptions = {
+// Create a separate auth options config
+export const config: NextAuthOptions = {
   providers: [
     CredentialsProvider({
       name: "credentials", 
@@ -44,7 +45,8 @@ const authOptions: NextAuthOptions = {
   },
 };
 
-const handler = NextAuth(authOptions);
+// Create the handler using the config
+const handler = NextAuth(config);
 
-// Correct export format for Next.js App Router
+// Export the handler functions for the route
 export { handler as GET, handler as POST };

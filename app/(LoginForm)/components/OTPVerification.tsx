@@ -73,10 +73,7 @@ export function OTPVerification({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, otp }),
-      });
-
-      const data = await res.json();
-      
+      });    
       if (!res.ok) {
         await fetch("/api/ratelimit", {
           method: "POST",

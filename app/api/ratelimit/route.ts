@@ -7,7 +7,8 @@ export async function POST(req: Request) {
     
     const config = {
       login: { windowMs: 300000, maxAttempts: 3 },  
-      register: { windowMs: 300000, maxAttempts: 3 }
+      register: { windowMs: 300000, maxAttempts: 3 },
+      otp: { windowMs: 300000, maxAttempts: 5 }
     };
 
     const result = await rateLimiter(

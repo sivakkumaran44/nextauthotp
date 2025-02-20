@@ -68,20 +68,21 @@ if (!rateLimitCheck.ok) {
         if (error instanceof AppError) throw error;
         throw new AppError(ERROR_MESSAGES.SERVER_ERROR, 500);
       }
-      try {
-        const otpRes = await fetch('/api/auth/send-otp', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: formData.email }),
-        });
+try {
+  const otpRes = await fetch('/api/auth/send-otp', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: formData.email }),
+  });
 
-        if (!otpRes.ok) {
-          throw new AppError(ERROR_MESSAGES.SERVER_ERROR, 500);
-        }
-      } catch (error) {
-        if (error instanceof AppError) throw error;
-        throw new AppError("Failed to send OTP. Please try again.", 500);
-      }
+  if (!otpRes.ok) {
+    const errorData = await otpRes.json();
+    throw new AppError(errorData.error || ERROR_MESSAGES.SERVER_ERROR, otpRes.status);
+  }
+} catch (error) {
+  if (error instanceof AppError) throw error;
+  throw new AppError("Failed to send OTP. Please check your email configuration.", 500);
+}
 
       setValidatedEmail(formData.email);
       setValidatedPassword(formData.password);

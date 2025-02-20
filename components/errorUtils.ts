@@ -9,12 +9,13 @@ export class AppError extends Error {
     }
   }
   export const ERROR_MESSAGES = {
-    RATE_LIMIT: 'Too many attempts. Please try again later.',
+    RATE_LIMIT: 'Too many attempts. Please try again later Ratelimit.',
     INVALID_CREDENTIALS: 'Invalid email or password.',
     USER_EXISTS: 'An account with this email already exists.',
     USER_NOT_FOUND: 'No account found with this email.',
     INVALID_OTP: 'Invalid or expired OTP code.',
     SERVER_ERROR: 'Something went wrong. Please try again later.',
+    REDIS_CONFIG_ERROR: 'Rate limiting service is not properly configured. Please contact support.',
     NETWORK_ERROR: 'Connection error. Please check your internet connection.',
     CAPTCHA_INVALID: 'Please complete the captcha verification.',
     SESSION_EXPIRED: 'Your session has expired. Please log in again.',

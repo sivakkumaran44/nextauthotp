@@ -5,7 +5,6 @@ import AuthForm from '@/components/AuthForm';
 import { useState } from "react";
 import { OTPVerification } from './OTPVerification';
 import { AppError, ERROR_MESSAGES, formatApiError } from '@/components/errorUtils';
-
 export default function LoginPage() {
   const router = useRouter();
   const [isBlocked, setIsBlocked] = useState(false);
@@ -19,26 +18,30 @@ export default function LoginPage() {
     setIsLoading(true);
     setError(null);
     try {
-      try {
-        const rateLimitCheck = await fetch("/api/ratelimit", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ 
-            identifier: `login:${formData.email}`,
-            action: 'login'
-          }),
-        });
-        
-        if (!rateLimitCheck.ok) {
-          const rateLimitData = await rateLimitCheck.json();
-          setIsBlocked(true);
-          setBlockTimeRemaining(Math.ceil(rateLimitData.remainingTime / 1000));
-          throw new AppError(ERROR_MESSAGES.RATE_LIMIT, 429);
-        }
-      } catch (error) {
-        if (error instanceof AppError) throw error;
-        throw new AppError(ERROR_MESSAGES.RATE_LIMIT, 429);
-      }
+const rateLimitCheck = await fetch("/api/ratelimit", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ 
+    identifier: `login:${formData.email}`,
+    action: 'login'
+  }),
+});
+
+const rateLimitData = await rateLimitCheck.json();
+
+if (!rateLimitCheck.ok) {
+  if (rateLimitData.error === ERROR_MESSAGES.REDIS_CONFIG_ERROR) {
+    throw new AppError(ERROR_MESSAGES.REDIS_CONFIG_ERROR, 500);
+  }
+  
+  if (rateLimitCheck.status === 429) {
+    setIsBlocked(true);
+    setBlockTimeRemaining(Math.ceil(rateLimitData.remainingTime / 1000));
+    throw new AppError(ERROR_MESSAGES.RATE_LIMIT, 429);
+  }
+  
+  throw new AppError(rateLimitData.error || ERROR_MESSAGES.SERVER_ERROR, rateLimitCheck.status);
+}
       try {
         const res = await fetch("/api/auth/validate-credentials", {
           method: "POST",
@@ -84,8 +87,12 @@ export default function LoginPage() {
       setValidatedPassword(formData.password);
       setShowOTP(true);
     } catch (error) {
-      setError(formatApiError(error));
-      throw error;
+      if (error instanceof AppError) {
+        setError(error.message);
+        throw error;
+      }
+      setError(ERROR_MESSAGES.SERVER_ERROR);
+      throw new AppError(ERROR_MESSAGES.REDIS_CONFIG_ERROR, 500);
     } finally {
       setIsLoading(false);
     }

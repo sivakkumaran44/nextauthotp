@@ -1,10 +1,24 @@
 import { NextResponse } from "next/server";
 import { rateLimiter } from "@/lib/rateLimit";
-
+import { AppError,ERROR_MESSAGES } from '@/components/errorUtils';
 export async function POST(req: Request) {
+  if (!process.env.REDIS_URL) {
+    return NextResponse.json(
+      { error: ERROR_MESSAGES.REDIS_CONFIG_ERROR },
+      { status: 500 }
+    );
+  }
+
   try {
     const { identifier, action, recordFailure = false, reset = false } = await req.json();
-    
+  
+    if (!process.env.REDIS_URL) {
+      return NextResponse.json(
+        { error: ERROR_MESSAGES.REDIS_CONFIG_ERROR },
+        { status: 500 }
+      );
+    }
+
     const config = {
       login: { windowMs: 300000, maxAttempts: 3 },  
       register: { windowMs: 300000, maxAttempts: 3 },
@@ -34,6 +48,12 @@ export async function POST(req: Request) {
     });
   } catch (error) {
     console.error("Rate limit check error:", error);
+    if (error instanceof AppError && error.message === ERROR_MESSAGES.REDIS_CONFIG_ERROR) {
+      return NextResponse.json(
+        { error: ERROR_MESSAGES.REDIS_CONFIG_ERROR },
+        { status: 500 }
+      );
+    }
     return NextResponse.json(
       { error: "Internal Server Error" },
       { status: 500 }

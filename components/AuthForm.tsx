@@ -42,15 +42,15 @@ export default function AuthForm({
   };
   useEffect(() => {
     if (Object.keys(touched).length > 0) {
-      const { errors } = validateForm(formData);
+      const { errors } = validateForm(formData, type);
       setErrors(errors);
     }
-  }, [formData, touched]);
- 
+  }, [formData, touched, type]);
+  
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setErrors([]);
-    const validation = validateForm(formData);
+    const validation = validateForm(formData, type);
     if (!validation.isValid) {
       setErrors(validation.errors);
       return;

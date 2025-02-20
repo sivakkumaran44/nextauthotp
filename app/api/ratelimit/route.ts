@@ -1,23 +1,20 @@
 import { NextResponse } from "next/server";
 import { rateLimiter } from "@/lib/rateLimit";
-import { AppError,ERROR_MESSAGES } from '@/components/errorUtils';
+import { AppError, ERROR_MESSAGES } from '@/components/errorUtils';
+
 export async function POST(req: Request) {
-  if (!process.env.REDIS_URL) {
-    return NextResponse.json(
-      { error: ERROR_MESSAGES.REDIS_CONFIG_ERROR },
-      { status: 500 }
+ if (!process.env.REDIS_URL) {
+    return new NextResponse(
+      JSON.stringify({ error: ERROR_MESSAGES.REDIS_CONFIG_ERROR }),
+      { 
+        status: 500,
+        headers: { 'Content-Type': 'application/json' }
+      }
     );
   }
 
   try {
     const { identifier, action, recordFailure = false, reset = false } = await req.json();
-  
-    if (!process.env.REDIS_URL) {
-      return NextResponse.json(
-        { error: ERROR_MESSAGES.REDIS_CONFIG_ERROR },
-        { status: 500 }
-      );
-    }
 
     const config = {
       login: { windowMs: 300000, maxAttempts: 3 },  
@@ -33,30 +30,39 @@ export async function POST(req: Request) {
     );
 
     if (!result.success) {
-      return NextResponse.json(
-        { 
+      return new NextResponse(
+        JSON.stringify({ 
           error: result.message,
           remainingTime: result.remainingTime 
-        },
-        { status: 429 }
+        }),
+        { 
+          status: 429,
+          headers: { 'Content-Type': 'application/json' }
+        }
       );
     }
 
-    return NextResponse.json({ 
-      success: true,
-      attemptsRemaining: result.attemptsRemaining
-    });
+    return new NextResponse(
+      JSON.stringify({ 
+        success: true,
+        attemptsRemaining: result.attemptsRemaining
+      }),
+      { 
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      }
+    );
   } catch (error) {
     console.error("Rate limit check error:", error);
-    if (error instanceof AppError && error.message === ERROR_MESSAGES.REDIS_CONFIG_ERROR) {
-      return NextResponse.json(
-        { error: ERROR_MESSAGES.REDIS_CONFIG_ERROR },
-        { status: 500 }
-      );
-    }
-    return NextResponse.json(
-      { error: "Internal Server Error" },
-      { status: 500 }
+    
+    return new NextResponse(
+      JSON.stringify({ 
+        error: error instanceof AppError ? error.message : ERROR_MESSAGES.SERVER_ERROR 
+      }),
+      { 
+        status: 500,
+        headers: { 'Content-Type': 'application/json' }
+      }
     );
   }
 }

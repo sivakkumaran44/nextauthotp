@@ -2,7 +2,7 @@ import { Redis } from 'ioredis';
 import { AppError,ERROR_MESSAGES } from '@/components/errorUtils';
 
 if (!process.env.REDIS_URL) {
-  throw new AppError("Rate limiting service is not properly configured", 500);
+  throw new AppError(ERROR_MESSAGES.REDIS_CONFIG_ERROR, 500);
 }
 const redis = new Redis(process.env.REDIS_URL);
 

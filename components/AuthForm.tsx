@@ -16,17 +16,21 @@ interface AuthFormProps {
   isBlocked?: boolean;
   blockTimeRemaining?: number;
 }
+
 export default function AuthForm({ 
   type, 
   onSubmit, 
   isLoading = false,
   isBlocked = false,
 }: AuthFormProps) {
+  
+  
   const [formData, setFormData] = useState<Record<string, string>>({});
   const [errors, setErrors] = useState<ValidationError[]>([]);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [captchaToken, setCaptchaToken] = useState<string>("");
 
+  
   const fields: Record<'login' | 'register', FormField[]> = {
     login: [
       { id: 'email', label: 'Email', type: 'email', placeholder: 'abc@gmail.com' },
@@ -171,3 +175,5 @@ export default function AuthForm({
     </form>
   );
 }
+
+

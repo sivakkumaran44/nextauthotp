@@ -19,7 +19,7 @@ export async function POST(req: Request) {
     
    const otp = Math.floor(100000 + Math.random() * 900000).toString();
     
-    await redis.set(`otp:${email}`, otp, 'EX', 300);
+    await redis.set(`otp:${email}`, otp, 'EX', 20);
     
    await transporter.sendMail({
       from: process.env.SENDER_EMAIL_ADMIN,

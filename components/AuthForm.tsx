@@ -3,12 +3,14 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { Turnstile } from "@marsidev/react-turnstile";
 import { validateForm, ValidationError } from "./validation";
+import { AppError, ERROR_MESSAGES, formatApiError } from '@/components/errorUtils';
 interface FormField {
   id: string;
   label: string;
   type: string;
   placeholder: string;
 }
+
 interface AuthFormProps {
   type: 'login' | 'register';
   onSubmit: (formData: Record<string, string>) => Promise<void>;
@@ -16,21 +18,16 @@ interface AuthFormProps {
   isBlocked?: boolean;
   blockTimeRemaining?: number;
 }
-
 export default function AuthForm({ 
   type, 
   onSubmit, 
   isLoading = false,
   isBlocked = false,
 }: AuthFormProps) {
-  
-  
   const [formData, setFormData] = useState<Record<string, string>>({});
   const [errors, setErrors] = useState<ValidationError[]>([]);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [captchaToken, setCaptchaToken] = useState<string>("");
-
-  
   const fields: Record<'login' | 'register', FormField[]> = {
     login: [
       { id: 'email', label: 'Email', type: 'email', placeholder: 'abc@gmail.com' },
@@ -48,36 +45,44 @@ export default function AuthForm({
       setErrors(errors);
     }
   }, [formData, touched]);
-
+ 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setErrors([]);
     const validation = validateForm(formData);
-    
     if (!validation.isValid) {
       setErrors(validation.errors);
+      return;
+    }
+    if (!captchaToken) {
+      setErrors([{ field: 'form', message: ERROR_MESSAGES.CAPTCHA_INVALID }]);
       return;
     }
 
     try {
       await onSubmit({ ...formData, captchaToken });
     } catch (error) {
-      setErrors([{ field: 'form', message: error instanceof Error ? error.message : "An unexpected error occurred" }]);
+      let errorMessage = '';
+      if (error instanceof AppError) {
+        errorMessage = error.message;
+      } else if (error instanceof Error) {
+        errorMessage = formatApiError(error);
+      } else {
+        errorMessage = ERROR_MESSAGES.SERVER_ERROR;
+      }
+      setErrors([{ field: 'form', message: errorMessage }]);
     }
   };
-
   const handleInputChange = (id: string, value: string) => {
     setFormData(prev => ({ ...prev, [id]: value }));
     setTouched(prev => ({ ...prev, [id]: true }));
   };
-
   const handleBlur = (id: string) => {
     setTouched(prev => ({ ...prev, [id]: true }));
   };
-
   const getFieldError = (fieldId: string) => {
     return errors.find(error => error.field === fieldId)?.message;
   };
-
   const isFormValid = () => {
     return validateForm(formData).isValid && captchaToken;
   };
